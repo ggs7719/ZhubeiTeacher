@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>竹北社區大學 講師投課資料填寫系統</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- html2pdf.js for Client-side PDF Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+    
+    * {
+      font-family: 'Noto Sans TC', sans-serif;
+    }
+
+    /* Print styles */
+    @media print {
+      body {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        font-size: 11pt !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+      .page-break {
+        page-break-before: always;
+      }
+      table, th, td {
+        border-color: #333333 !important;
+      }
+      .pdf-sheet {
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+      }
+    }
+
+    /* Modern scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- Header Banner -->
+  <header class="bg-gradient-to-r from-emerald-700 via-teal-700 to-cyan-800 text-white shadow-lg sticky top-0 z-40 no-print">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="w-12 h-12 bg-white text-emerald-800 rounded-xl flex items-center justify-center font-black text-2xl shadow-inner">
+          <i class="fa-solid fa-graduation-cap"></i>
+        </div>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-bold tracking-wide">竹北社區大學 講師投課系統</h1>
+          <p class="text-emerald-100 text-sm">親切導引・大字體介面・一鍵匯出正式投課表 (PDF)</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="quick-demo-btn" type="button" class="px-3 py-2 bg-emerald-800/80 hover:bg-emerald-600 text-emerald-100 text-sm font-medium rounded-lg border border-emerald-400/40 transition flex items-center gap-1.5 shadow-sm" title="載入範例資料方便測試">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>填入範例</span>
+        </button>
+        <button id="export-pdf-top-btn" type="button" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold text-base rounded-lg shadow-md hover:shadow-lg transition flex items-center gap-2 transform active:scale-95">
+          <i class="fa-solid fa-file-pdf text-red-700 text-lg"></i>
+          <span>匯出 PDF 檔案</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Notice Bar -->
+  <div class="bg-emerald-50 border-b border-emerald-200 py-2.5 px-4 no-print">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between text-emerald-900 text-sm sm:text-base gap-2">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-circle-info text-emerald-600 text-lg"></i>
+        <span><strong>填寫須知：</strong>請詳閱新竹縣社區大學課程撰寫格式標準，資料將自動暫存於瀏覽器中。</span>
+      </div>
+      <a href="https://zb.hccu.org.tw/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-emerald-700 hover:text-emerald-900 font-semibold underline decoration-2 underline-offset-2">
+        <span>選課系統請點此</span>
+        <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+      </a>
+    </div>
+  </div>
+
+  <!-- Wizard Step Bar -->
+  <div class="max-w-6xl mx-auto px-4 mt-6 w-full no-print">
+    <div class="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-slate-200">
+      <div class="flex items-center justify-between relative">
+        <div class="absolute left-0 top-1/2 -translate-y-1/2 h-1.5 bg-slate-200 w-full z-0 rounded-full"></div>
+        <div id="step-progress-bar" class="absolute left-0 top-1/2 -translate-y-1/2 h-1.5 bg-emerald-600 z-0 rounded-full transition-all duration-300 w-0"></div>
+
+        <!-- Step 1 Button -->
+        <button type="button" class="step-nav-btn relative z-10 flex flex-col items-center group cursor-pointer focus:outline-none" data-step="1">
+          <div class="step-circle w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-lg sm:text-xl transition-all duration-200 shadow-md bg-emerald-600 text-white ring-4 ring-emerald-100">
+            1
+          </div>
+          <span class="step-label mt-2 text-xs sm:text-sm font-bold text-emerald-800">基本資料</span>
+        </button>
+
+        <!-- Step 2 Button -->
+        <button type="button" class="step-nav-btn relative z-10 flex flex-col items-center group cursor-pointer focus:outline-none" data-step="2">
+          <div class="step-circle w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-lg sm:text-xl transition-all duration-200 shadow-md bg-white border-2 border-slate-300 text-slate-500 group-hover:border-emerald-400">
+            2
+          </div>
+          <span class="step-label mt-2 text-xs sm:text-sm font-medium text-slate-500">教學理念與對象</span>
+        </button>
+
+        <!-- Step 3 Button -->
+        <button type="button" class="step-nav-btn relative z-10 flex flex-col items-center group cursor-pointer focus:outline-none" data-step="3">
+          <div class="step-circle w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-lg sm:text-xl transition-all duration-200 shadow-md bg-white border-2 border-slate-300 text-slate-500 group-hover:border-emerald-400">
+            3
+          </div>
+          <span class="step-label mt-2 text-xs sm:text-sm font-medium text-slate-500">教法與費用材料</span>
+        </button>
+
+        <!-- Step 4 Button -->
+        <button type="button" class="step-nav-btn relative z-10 flex flex-col items-center group cursor-pointer focus:outline-none" data-step="4">
+          <div class="step-circle w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-lg sm:text-xl transition-all duration-200 shadow-md bg-white border-2 border-slate-300 text-slate-500 group-hover:border-emerald-400">
+            4
+          </div>
+          <span class="step-label mt-2 text-xs sm:text-sm font-medium text-slate-500">18週課程大綱</span>
+        </button>
+
+        <!-- Step 5 Button -->
+        <button type="button" class="step-nav-btn relative z-10 flex flex-col items-center group cursor-pointer focus:outline-none" data-step="5">
+          <div class="step-circle w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-lg sm:text-xl transition-all duration-200 shadow-md bg-white border-2 border-slate-300 text-slate-500 group-hover:border-emerald-400">
+            5
+          </div>
+          <span class="step-label mt-2 text-xs sm:text-sm font-medium text-slate-500">總覽確認與匯出</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <main class="max-w-6xl mx-auto px-4 py-6 w-full flex-1">
+    <form id="course-form" onsubmit="return false;">
+
+      <!-- ================= STEP 1: 基本資訊 ================= -->
+      <section id="step-panel-1" class="step-panel bg-white rounded-2xl p-6 sm:p-8 shadow-md border border-slate-200 space-y-6">
+        <div class="border-b border-slate-200 pb-4">
+          <span class="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 text-sm font-bold rounded-full mb-2">步驟 1 / 5</span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-book-open text-emerald-600"></i>
+            課程基本資料
+          </h2>
+          <p class="text-slate-600 mt-1 text-base">請填寫課程的核心名稱、週次學分、時間地點及費用。</p>
+        </div>
+
+        <!-- 課程名稱 -->
+        <div class="space-y-2">
+          <div class="flex items-baseline justify-between flex-wrap gap-1">
+            <label for="course_name" class="block text-lg sm:text-xl font-bold text-slate-800">
+              課程名稱 <span class="text-red-500">*</span>
+            </label>
+            <span class="text-sm font-medium text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+              規範：主副標 4~12 字為原則
+            </span>
+          </div>
+          <p class="text-slate-500 text-sm">
+            💡 若課程需分階段，僅分為<strong>初階、中階、高階</strong>。名稱後勿冠「班」、「課程」等字樣，且<strong>不應加上標點符號</strong>。
+          </p>
+          <div class="relative">
+            <input type="text" id="course_name" name="course_name" maxlength="30" placeholder="例如：生活水彩美學初階 (請勿加上班、課程或標點)" 
+              class="w-full text-lg px-4 py-3 border-2 border-slate-300 rounded-xl focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition outline-none">
+            <span id="name-counter" class="absolute right-3.5 top-3.5 text-xs sm:text-sm font-semibold text-slate-400">0 字</span>
+          </div>
+        </div>
+
+        <!-- 課程週次與時數 -->
+        <div class="space-y-3 pt-2">
+          <label class="block text-lg sm:text-xl font-bold text-slate-800">
+            課程週次與學分規劃 <span class="text-red-500">*</span>
+          </label>
+          <div class="p-4 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-sm sm:text-base leading-relaxed">
+            <i class="fa-solid fa-triangle-exclamation text-amber-600 mr-1"></i>
+            <strong>規定：</strong>第九週是公民素養週，因此需要跨週數上課，不能只有九週以內的課程。請選擇社大標準三種模式之一：
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+            <label class="week-option flex flex-col p-4 border-2 border-slate-200 hover:border-emerald-500 rounded-xl cursor-pointer bg-slate-50 transition">
+              <div class="flex items-center gap-3">
+                <input type="radio" name="week_type" value="12週 / 每次3小時 / 36小時 (2學分)" class="w-5 h-5 text-emerald-600 focus:ring-emerald-500" checked>
+                <span class="text-lg font-bold text-slate-800">12 週課程</span>
+              </div>
+              <div class="mt-2 text-slate-600 text-sm pl-8">
+                每次 3 小時・總共 36 小時<br>
+                <span class="inline-block mt-1 font-semibold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded text-xs">2 學分</span>
+              </div>
+            </label>
+
+            <label class="week-option flex flex-col p-4 border-2 border-slate-200 hover:border-emerald-500 rounded-xl cursor-pointer bg-slate-50 transition">
+              <div class="flex items-center gap-3">
+                <input type="radio" name="week_type" value="18週 / 每次2小時 / 36小時 (2學分)" class="w-5 h-5 text-emerald-600 focus:ring-emerald-500">
+                <span class="text-lg font-bold text-slate-800">18 週課程 (2小時)</span>
+              </div>
+              <div class="mt-2 text-slate-600 text-sm pl-8">
+                每次 2 小時・總共 36 小時<br>
+                <span class="inline-block mt-1 font-semibold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded text-xs">2 學分</span>
+              </div>
+            </label>
+
+            <label class="week-option flex flex-col p-4 border-2 border-slate-200 hover:border-emerald-500 rounded-xl cursor-pointer bg-slate-50 transition">
+              <div class="flex items-center gap-3">
+                <input type="radio" name="week_type" value="18週 / 每次3小時 / 54小時 (3學分)" class="w-5 h-5 text-emerald-600 focus:ring-emerald-500">
+                <span class="text-lg font-bold text-slate-800">18 週課程 (3小時)</span>
+              </div>
+              <div class="mt-2 text-slate-600 text-sm pl-8">
+                每次 3 小時・總共 54 小時<br>
+                <span class="inline-block mt-1 font-semibold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded text-xs">3 學分</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- 上課地點 -->
+        <div class="space-y-2 pt-2">
+          <label class="block text-lg sm:text-xl font-bold text-slate-800">
+            上課地點 <span class="text-red-500">*</span>
+          </label>
+          <p class="text-slate-500 text-sm">請勾選或指定上課校區教室：</p>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+            <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer">
+              <input type="radio" name="location" value="博愛國中" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" checked>
+              <span class="text-base font-medium text-slate-700">博愛國中</span>
+            </label>
+            <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer">
+              <input type="radio" name="location" value="博愛國小舞蹈教室" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500">
+              <span class="text-base font-medium text-slate-700">博愛國小舞蹈教室</span>
+            </label>
+            <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer">
+              <input type="radio" name="location" value="博愛國小美術教室" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500">
+              <span class="text-base font-medium text-slate-700">博愛國小美術教室</span>
+            </label>
+            <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer">
+              <input type="radio" name="location" value="新社國小舞蹈教室" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500">
+              <span class="text-base font-medium text-slate-700">新社國小舞蹈教室</span>
+            </label>
+            <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer">
+              <input type="radio" name="location" value="六家國小電腦教室" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500">
+              <span class="text-base font-medium text-slate-700">六家國小電腦教室</span>
+            </label>
+            <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer">
+              <input type="radio" name="location" value="竹北市(由學校安排)" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500">
+              <span class="text-base font-medium text-slate-700">竹北市 (由學校安排)</span>
+            </label>
+            <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer col-span-2 sm:col-span-3">
+              <input type="radio" name="location" value="其他" id="loc-other-radio" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500">
+              <span class="text-base font-medium text-slate-700">其他地點：</span>
+              <input type="text" id="location_other" placeholder="請填寫具體場地名稱或地址" class="flex-1 text-base px-3 py-1.5 border border-slate-300 rounded-lg outline-none focus:border-emerald-600">
+            </label>
+          </div>
+        </div>
+
+        <!-- 上課時間與學分費 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
+          <div class="space-y-2">
+            <label for="course_time" class="block text-lg sm:text-xl font-bold text-slate-800">
+              上課時間 <span class="text-red-500">*</span>
+            </label>
+            <input type="text" id="course_time" name="course_time" placeholder="例如：每週三 19:00 - 21:00" 
+              class="w-full text-base px-4 py-3 border-2 border-slate-300 rounded-xl focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition outline-none">
+            <p class="text-xs text-slate-500">註明每星期幾與起訖時間。</p>
+          </div>
+
+          <div class="space-y-2">
+            <label for="tuition_fee" class="block text-lg sm:text-xl font-bold text-slate-800">
+              學分費 (元) <span class="text-red-500">*</span>
+            </label>
+            <input type="text" id="tuition_fee" name="tuition_fee" placeholder="例如：2,000 元 (2學分) 或 3,000 元" 
+              class="w-full text-base px-4 py-3 border-2 border-slate-300 rounded-xl focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition outline-none">
+            <p class="text-xs text-slate-500">請依學分數填寫社大學分收費標準。</p>
+          </div>
+        </div>
+
+        <!-- 導覽按鈕 -->
+        <div class="flex justify-end pt-6 border-t border-slate-200">
+          <button type="button" class="next-step-btn px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg rounded-xl shadow-md flex items-center gap-2">
+            <span>下一步：理念與對象</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= STEP 2: 理念與對象 ================= -->
+      <section id="step-panel-2" class="step-panel hidden bg-white rounded-2xl p-6 sm:p-8 shadow-md border border-slate-200 space-y-6">
+        <div class="border-b border-slate-200 pb-4">
+          <span class="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 text-sm font-bold rounded-full mb-2">步驟 2 / 5</span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-bullseye text-emerald-600"></i>
+            課程理念、目標與條件對象
+          </h2>
+          <p class="text-slate-600 mt-1 text-base">清楚向學員傳達課程價值，請特別留意<strong>全形標點符號</strong>及<strong>字數限制</strong>。</p>
+        </div>
+
+        <!-- 課程目標 -->
+        <div class="space-y-2">
+          <div class="flex items-baseline justify-between flex-wrap gap-1">
+            <label for="course_goal" class="block text-lg sm:text-xl font-bold text-slate-800">
+              課程目標 <span class="text-red-500">*</span>
+            </label>
+            <span class="text-sm font-medium text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+              規範：120 字以內，標點符號請用全形「，、。」
+            </span>
+          </div>
+          <p class="text-slate-500 text-sm">介紹您的課程具體目標，期望學員獲得的核心素養與實務技能。</p>
+          <div class="relative">
+            <textarea id="course_goal" name="course_goal" rows="4" maxlength="120" placeholder="請在此輸入課程目標（120字以內），標點符號請務必使用全形..."
+              class="w-full text-base p-4 border-2 border-slate-300 rounded-xl focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition outline-none resize-y"></textarea>
+            <div class="flex justify-between items-center text-xs sm:text-sm text-slate-500 mt-1">
+              <span>標點檢查：全形逗號（，）全形句號（。）全形頓號（、）</span>
+              <span id="goal-counter" class="font-bold text-slate-600">0 / 120 字</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 課程理念 -->
+        <div class="space-y-2 pt-2">
+          <div class="flex items-baseline justify-between flex-wrap gap-1">
+            <label for="course_idea" class="block text-lg sm:text-xl font-bold text-slate-800">
+              課程理念 <span class="text-red-500">*</span>
+            </label>
+            <span class="text-sm font-medium text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+              規範：120 字以內，標點符號請用全形
+            </span>
+          </div>
+          <p class="text-slate-500 text-sm">說明本課程的教學理念，及預期學員可達成之學習成果與公共參與價值。</p>
+          <div class="relative">
+            <textarea id="course_idea" name="course_idea" rows="4" maxlength="120" placeholder="請在此輸入教學理念與預期成果（120字以內）..."
+              class="w-full text-base p-4 border-2 border-slate-300 rounded-xl focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition outline-none resize-y"></textarea>
+            <div class="flex justify-end text-xs sm:text-sm text-slate-500 mt-1">
+              <span id="idea-counter" class="font-bold text-slate-600">0 / 120 字</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 條件限制對象 -->
+        <div class="space-y-2 pt-2">
+          <div class="flex items-baseline justify-between flex-wrap gap-1">
+            <label for="course_audience" class="block text-lg sm:text-xl font-bold text-slate-800">
+              條件限制對象 <span class="text-red-500">*</span>
+            </label>
+            <span class="text-sm font-medium text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+              規範：120 字以內
+            </span>
+          </div>
+          <p class="text-slate-500 text-sm">介紹學員資格。若為初階、中階或高階程度之課程，請詳細敘明學員須具備之基本能力或先備知識（若無特別限制亦請敘明「凡對本領域有興趣之一般社會大眾皆可」）。</p>
+          <div class="relative">
+            <textarea id="course_audience" name="course_audience" rows="4" maxlength="120" placeholder="例如：對手作與環境美學有興趣之成人學員，零基礎初學者亦竭誠歡迎。"
+              class="w-full text-base p-4 border-2 border-slate-300 rounded-xl focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition outline-none resize-y"></textarea>
+            <div class="flex justify-end text-xs sm:text-sm text-slate-500 mt-1">
+              <span id="audience-counter" class="font-bold text-slate-600">0 / 120 字</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 導覽按鈕 -->
+        <div class="flex justify-between pt-6 border-t border-slate-200">
+          <button type="button" class="prev-step-btn px-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-lg rounded-xl transition flex items-center gap-2">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>上一步</span>
+          </button>
+          <button type="button" class="next-step-btn px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg rounded-xl shadow-md flex items-center gap-2">
+            <span>下一步：教法與費用材料</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= STEP 3: 教法與材料費用 ================= -->
+      <section id="step-panel-3" class="step-panel hidden bg-white rounded-2xl p-6 sm:p-8 shadow-md border border-slate-200 space-y-6">
+        <div class="border-b border-slate-200 pb-4">
+          <span class="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 text-sm font-bold rounded-full mb-2">步驟 3 / 5</span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-chalkboard-user text-emerald-600"></i>
+            授課方式、評量、材料與設備
+          </h2>
+          <p class="text-slate-600 mt-1 text-base">完善課堂進行模式與學員費用透明化，讓課程審查順暢無虞。</p>
+        </div>
+
+        <!-- 授課方式 (提供快速點擊選擇 + 自行編輯) -->
+        <div class="space-y-3">
+          <div class="flex items-baseline justify-between flex-wrap gap-1">
+            <label for="teaching_methods" class="block text-lg sm:text-xl font-bold text-slate-800">
+              授課方式 <span class="text-red-500">*</span>
+            </label>
+            <span class="text-sm font-medium text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+              規範：盡量不多於 100 字
+            </span>
+          </div>
+          <p class="text-slate-500 text-sm">💡 點擊下方常用授課方式可直接帶入欄位：</p>
+          <div class="flex flex-wrap gap-2 pt-1" id="teaching-tags">
+            <button type="button" class="tag-pill px-3 py-1.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-700 text-sm rounded-lg border border-slate-300 font-medium transition" data-val="講師示範與實際操作">＋ 講師示範與實際操作</button>
+            <button type="button" class="tag-pill px-3 py-1.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-700 text-sm rounded-lg border border-slate-300 font-medium transition" data-val="個別指導與反覆練習">＋ 個別指導與反覆練習</button>
+            <button type="button" class="tag-pill px-3 py-1.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-700 text-sm rounded-lg border border-slate-300 font-medium transition" data-val="團體互動及小組活動">＋ 團體互動及小組活動</button>
+            <button type="button" class="tag-pill px-3 py-1.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-700 text-sm rounded-lg border border-slate-300 font-medium transition" data-val="主題探討或簡報介紹">＋ 主題探討或簡報介紹</button>
+            <button type="button" class="tag-pill px-3 py-1.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-700 text-sm rounded-lg border border-slate-300 font-medium transition" data-val="案例討論與心得分享">＋ 案例討論與心得分享</button>
+            <button type="button" class="tag-pill px-3 py-1.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-700 text-sm rounded-lg border border-slate-300 font-medium transition" data-val="實物觀賞及樣品教學">＋ 實物觀賞及樣品教學</button>
+            <button type="button" class="tag-pill px-3 py-1.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-700 text-sm rounded-lg border border-slate-300 font-medium transition" data-val="影片欣賞及圖像教學">＋ 影片欣賞及圖像教學</button>
+            <button type="button" class="tag-pill px-3 py-1.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-700 text-sm rounded-lg border border-slate-300 font-medium transition" data-val="戶外參訪及環境關懷">＋ 戶外參訪及環境關懷</button>
+            <button type="button" class="tag-pill px-3 py-1.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-700 text-sm rounded-lg border border-slate-300 font-medium transition" data-val="學員上台表演與展現">＋ 學員上台表演與展現</button>
+          </div>
+          <div class="relative">
+            <textarea id="teaching_methods" name="teaching_methods" rows="3" maxlength="100" placeholder="例如：主題探討或簡報介紹、講師示範與實際操作、個別指導與反覆練習、案例討論與心得分享。"
+              class="w-full text-base p-4 border-2 border-slate-300 rounded-xl focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition outline-none resize-y"></textarea>
+            <div class="flex justify-end text-xs sm:text-sm text-slate-500 mt-1">
+              <span id="methods-counter" class="font-bold text-slate-600">0 / 100 字</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 評量方式 (至少三項且總和100%) -->
+        <div class="space-y-3 pt-2">
+          <div class="flex items-baseline justify-between flex-wrap gap-1">
+            <label class="block text-lg sm:text-xl font-bold text-slate-800">
+              評量方式 <span class="text-red-500">*</span>
+            </label>
+            <span class="text-sm font-medium text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+              規範：至少三項，加總需為 100%
+            </span>
+          </div>
+          <p class="text-slate-500 text-sm">
+            請設定評量比例（系統會自動計算總合）：
+          </p>
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">學員出席率 (%)</label>
+              <input type="number" min="0" max="100" class="eval-input w-full p-2 border border-slate-300 rounded-lg text-center font-bold" data-item="出席率" placeholder="0" value="40">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">課堂實作 / 練習 (%)</label>
+              <input type="number" min="0" max="100" class="eval-input w-full p-2 border border-slate-300 rounded-lg text-center font-bold" data-item="課堂實作" placeholder="0" value="30">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">學習態度與參與 (%)</label>
+              <input type="number" min="0" max="100" class="eval-input w-full p-2 border border-slate-300 rounded-lg text-center font-bold" data-item="學習態度" placeholder="0" value="30">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">成果展演 / 作品集 (%)</label>
+              <input type="number" min="0" max="100" class="eval-input w-full p-2 border border-slate-300 rounded-lg text-center font-bold" data-item="成果展演" placeholder="0" value="0">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">課堂討論與互動 (%)</label>
+              <input type="number" min="0" max="100" class="eval-input w-full p-2 border border-slate-300 rounded-lg text-center font-bold" data-item="課堂討論" placeholder="0" value="0">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">書面報告或心得 (%)</label>
+              <input type="number" min="0" max="100" class="eval-input w-full p-2 border border-slate-300 rounded-lg text-center font-bold" data-item="書面報告" placeholder="0" value="0">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">社區活動參與 (%)</label>
+              <input type="number" min="0" max="100" class="eval-input w-full p-2 border border-slate-300 rounded-lg text-center font-bold" data-item="社區活動參與" placeholder="0" value="0">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">其他評量 (%)</label>
+              <input type="number" min="0" max="100" class="eval-input w-full p-2 border border-slate-300 rounded-lg text-center font-bold" data-item="其他" placeholder="0" value="0">
+            </div>
+          </div>
+          <div class="flex items-center justify-between px-2">
+            <span class="text-sm font-bold text-slate-700">總計比例：<span id="eval-total-display" class="text-lg font-black text-emerald-600">100%</span></span>
+            <span id="eval-status-msg" class="text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-1 rounded">比例正確合規</span>
+          </div>
+          <!-- 隱藏或同步的評量文字欄位 -->
+          <input type="hidden" id="evaluation_text" name="evaluation_text">
+        </div>
+
+        <!-- 材料說明 -->
+        <div class="space-y-2 pt-2">
+          <label for="material_desc" class="block text-lg sm:text-xl font-bold text-slate-800">
+            材料說明 (學員自費項目) <span class="text-red-500">*</span>
+          </label>
+          <p class="text-slate-500 text-sm">
+            詳細說明涵蓋一整個學期可能發生之講義、參考書目、食材、工具、校外教學、相關材料等需加收費用。可依品名、規格、數量、單價、小計、用途分列輸入。若無自費材料請填「無」。
+          </p>
+          <textarea id="material_desc" name="material_desc" rows="3" placeholder="例如：講義費100元；水彩畫紙與基礎顏料代購費350元（可自備）。"
+            class="w-full text-base p-4 border-2 border-slate-300 rounded-xl focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition outline-none resize-y"></textarea>
+        </div>
+
+        <!-- 學員自備事項 -->
+        <div class="space-y-2 pt-2">
+          <label for="student_prep" class="block text-lg sm:text-xl font-bold text-slate-800">
+            學員自備事項 <span class="text-red-500">*</span>
+          </label>
+          <p class="text-slate-500 text-sm">
+            學員需自備的物品、工具、特殊器具、專業服飾；<strong>若無特殊規定，請寫「自由」</strong>。
+          </p>
+          <input type="text" id="student_prep" name="student_prep" placeholder="若無特殊規定，請寫自由" value="自由"
+            class="w-full text-base px-4 py-3 border-2 border-slate-300 rounded-xl focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition outline-none">
+        </div>
+
+        <!-- 課程參考資料書目 -->
+        <div class="space-y-2 pt-2">
+          <div class="flex items-baseline justify-between flex-wrap gap-1">
+            <label for="reference_books" class="block text-lg sm:text-xl font-bold text-slate-800">
+              課程參考資料書目 <span class="text-red-500">*</span>
+            </label>
+            <span class="text-sm font-medium text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+              規範：至少一本，依照格式分列輸入
+            </span>
+          </div>
+          <p class="text-slate-500 text-sm">
+            格式範例：<strong>作者 (出版年)。書名。出版社。</strong>（每一筆資料之間請換行分列輸入）
+          </p>
+          <textarea id="reference_books" name="reference_books" rows="3" placeholder="例：張哲敏(2013)。棒壘球運動。高等教育。"
+            class="w-full text-base p-4 border-2 border-slate-300 rounded-xl focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition outline-none resize-y"></textarea>
+        </div>
+
+        <!-- 上課使用器材 (多選) -->
+        <div class="space-y-3 pt-2">
+          <label class="block text-lg sm:text-xl font-bold text-slate-800">
+            上課使用器材
+          </label>
+          <p class="text-slate-500 text-sm">請勾選社大或教室需配合提供之設備儀器：</p>
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            <label class="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 cursor-pointer">
+              <input type="checkbox" name="equipment" value="投影機" class="w-4 h-4 text-emerald-600 rounded">
+              <span class="text-sm font-medium">投影機</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 cursor-pointer">
+              <input type="checkbox" name="equipment" value="電腦" class="w-4 h-4 text-emerald-600 rounded">
+              <span class="text-sm font-medium">電腦</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 cursor-pointer">
+              <input type="checkbox" name="equipment" value="小蜜蜂(擴音器)" class="w-4 h-4 text-emerald-600 rounded">
+              <span class="text-sm font-medium">小蜜蜂</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 cursor-pointer">
+              <input type="checkbox" name="equipment" value="白板筆" class="w-4 h-4 text-emerald-600 rounded">
+              <span class="text-sm font-medium">白板筆</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 cursor-pointer">
+              <input type="checkbox" name="equipment" value="雷射筆" class="w-4 h-4 text-emerald-600 rounded">
+              <span class="text-sm font-medium">雷射筆</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 cursor-pointer">
+              <input type="checkbox" name="equipment" value="喇叭" class="w-4 h-4 text-emerald-600 rounded">
+              <span class="text-sm font-medium">喇叭</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 cursor-pointer">
+              <input type="checkbox" name="equipment" value="音源線" class="w-4 h-4 text-emerald-600 rounded">
+              <span class="text-sm font-medium">音源線</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 cursor-pointer">
+              <input type="checkbox" name="equipment" value="手提音響、CD" class="w-4 h-4 text-emerald-600 rounded">
+              <span class="text-sm font-medium">手提音響、CD</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 cursor-pointer">
+              <input type="checkbox" name="equipment" value="延長線" class="w-4 h-4 text-emerald-600 rounded">
+              <span class="text-sm font-medium">延長線</span>
+            </label>
+            <div class="col-span-2 sm:col-span-3 flex items-center gap-2">
+              <span class="text-sm font-semibold text-slate-700">其他：</span>
+              <input type="text" id="equipment_other" placeholder="如需其他器材請在此補充" class="flex-1 text-sm px-3 py-1.5 border border-slate-300 rounded-lg outline-none focus:border-emerald-600">
+            </div>
+          </div>
+        </div>
+
+        <!-- 導覽按鈕 -->
+        <div class="flex justify-between pt-6 border-t border-slate-200">
+          <button type="button" class="prev-step-btn px-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-lg rounded-xl transition flex items-center gap-2">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>上一步</span>
+          </button>
+          <button type="button" class="next-step-btn px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg rounded-xl shadow-md flex items-center gap-2">
+            <span>下一步：18週課程大綱</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= STEP 4: 課程大綱 (18週) ================= -->
+      <section id="step-panel-4" class="step-panel hidden bg-white rounded-2xl p-6 sm:p-8 shadow-md border border-slate-200 space-y-6">
+        <div class="border-b border-slate-200 pb-4 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <span class="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 text-sm font-bold rounded-full mb-2">步驟 4 / 5</span>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-list-check text-emerald-600"></i>
+              三、課程大綱 (18週)
+            </h2>
+            <p class="text-slate-600 mt-1 text-base">請詳閱新竹縣社區大學課程撰寫格式標準。第九週固定為<strong>公民素養週</strong>。</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" id="fill-syllabus-demo" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg border border-slate-300 transition">
+              <i class="fa-solid fa-magic mr-1"></i>帶入示範大綱
+            </button>
+          </div>
+        </div>
+
+        <div class="p-3.5 bg-sky-50 border border-sky-200 rounded-xl text-sky-950 text-sm flex items-start gap-2">
+          <i class="fa-solid fa-info-circle text-sky-600 text-base mt-0.5"></i>
+          <div>
+            <strong>填寫提示：</strong>若您申請的是12週課程，請填寫至第12週（第13~18週可留空或依需擴充）。第九週固定由社大舉辦公民素養講座，已為您自動鎖定保護。
+          </div>
+        </div>
+
+        <!-- SEL 社會情緒學習 (Social and Emotional Learning) 整合建議面板 -->
+        <div class="bg-gradient-to-r from-purple-50 via-pink-50 to-amber-50 border-2 border-purple-200 rounded-2xl p-5 shadow-sm space-y-3">
+          <div class="flex items-center justify-between flex-wrap gap-2 border-b border-purple-200/60 pb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center text-sm font-bold shadow-sm">
+                <i class="fa-solid fa-heart-pulse"></i>
+              </span>
+              <div>
+                <h3 class="text-base sm:text-lg font-bold text-purple-950 flex items-center gap-2">
+                  SEL 社會情緒學習 (Social & Emotional Learning) 融入小幫手
+                  <span class="text-xs font-semibold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">社大推薦特色</span>
+                </h3>
+                <p class="text-xs sm:text-sm text-purple-800">
+                  可於「內容說明」或「預期效益」中融入 SEL 五大核心素養。<strong>點擊下方常用詞句即可快速帶入選定週次</strong>：
+                </p>
+              </div>
+            </div>
+            <!-- 目標週次選擇器 -->
+            <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-purple-300 shadow-sm text-sm">
+              <label for="sel-target-week" class="font-bold text-purple-900">帶入至：</label>
+              <select id="sel-target-week" class="bg-transparent font-bold text-purple-700 outline-none cursor-pointer">
+                <option value="1">第一週</option>
+                <option value="2">第二週</option>
+                <option value="3">第三週</option>
+                <option value="4">第四週</option>
+                <option value="5">第五週</option>
+                <option value="6">第六週</option>
+                <option value="7">第七週</option>
+                <option value="8">第八週</option>
+                <option value="10">第十週</option>
+                <option value="11">第十一週</option>
+                <option value="12">第十二週</option>
+                <option value="13">第十三週</option>
+                <option value="14">第十四週</option>
+                <option value="15">第十五週</option>
+                <option value="16">第十六週</option>
+                <option value="17">第十七週</option>
+                <option value="18">第十八週</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- SEL 五大核心標籤分類與詞庫 -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs sm:text-sm">
+            
+            <!-- 1. 自我覺察 (Self-Awareness) -->
+            <div class="bg-white/90 p-3 rounded-xl border border-purple-200 shadow-2xs space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-purple-900 flex items-center gap-1.5">
+                  <i class="fa-solid fa-eye text-purple-600"></i>【自我覺察】辨識情緒、了解自身優勢
+                </span>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" class="sel-insert-btn px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 rounded-lg border border-purple-200 transition text-left" data-target-field="content" data-text="課前進行靜心感知練習，覺察個人身心狀態與情緒感受">
+                  ＋ [內容] 靜心感知與覺察身心狀態
+                </button>
+                <button type="button" class="sel-insert-btn px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 rounded-lg border border-purple-200 transition text-left" data-target-field="outcome" data-text="提升自我內在覺察力，辨識個人情緒節奏並建立自信心">
+                  ＋ [效益] 增進自我覺察與自信
+                </button>
+              </div>
+            </div>
+
+            <!-- 2. 自我管理 (Self-Management) -->
+            <div class="bg-white/90 p-3 rounded-xl border border-blue-200 shadow-2xs space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-blue-900 flex items-center gap-1.5">
+                  <i class="fa-solid fa-sliders text-blue-600"></i>【自我管理】調適壓力、耐挫力與專注
+                </span>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" class="sel-insert-btn px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-lg border border-blue-200 transition text-left" data-target-field="content" data-text="練習深呼吸與節奏調節，面對創作瓶頸時學會自我舒緩">
+                  ＋ [內容] 面對瓶頸之壓力調節與舒緩
+                </button>
+                <button type="button" class="sel-insert-btn px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-lg border border-blue-200 transition text-left" data-target-field="outcome" data-text="培養專注當下的心流狀態，提升挫折容忍度與耐挫韌性">
+                  ＋ [效益] 培養沉浸心流與耐挫韌性
+                </button>
+              </div>
+            </div>
+
+            <!-- 3. 社會覺察 (Social Awareness) -->
+            <div class="bg-white/90 p-3 rounded-xl border border-teal-200 shadow-2xs space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-teal-900 flex items-center gap-1.5">
+                  <i class="fa-solid fa-people-arrows text-teal-600"></i>【社會覺察】同理心、尊重多元差異
+                </span>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" class="sel-insert-btn px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-800 rounded-lg border border-teal-200 transition text-left" data-target-field="content" data-text="引導學員練習換位思考與同理傾聽，欣賞多元觀點風格">
+                  ＋ [內容] 同理傾聽與欣賞多元觀點
+                </button>
+                <button type="button" class="sel-insert-btn px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-800 rounded-lg border border-teal-200 transition text-left" data-target-field="outcome" data-text="增進對同儕的同理與理解，建立包容與尊重多元之素養">
+                  ＋ [效益] 增進同理心與尊重多元差異
+                </button>
+              </div>
+            </div>
+
+            <!-- 4. 人際技巧 (Relationship Skills) -->
+            <div class="bg-white/90 p-3 rounded-xl border border-rose-200 shadow-2xs space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-rose-900 flex items-center gap-1.5">
+                  <i class="fa-solid fa-hands-holding-circle text-rose-600"></i>【人際技巧】合作溝通、溫暖互助
+                </span>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" class="sel-insert-btn px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 rounded-lg border border-rose-200 transition text-left" data-target-field="content" data-text="小組合作互動與正向回饋分享，練習具建設性的溫暖表達">
+                  ＋ [內容] 小組合作與正向互助回饋
+                </button>
+                <button type="button" class="sel-insert-btn px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 rounded-lg border border-rose-200 transition text-left" data-target-field="outcome" data-text="深化課堂支持性人際網絡，提升溝通合作與團隊信任感">
+                  ＋ [效益] 建立溫暖人際網絡與信任
+                </button>
+              </div>
+            </div>
+
+            <!-- 5. 負責任的決定 (Responsible Decision-Making) -->
+            <div class="bg-white/90 p-3 rounded-xl border border-amber-200 shadow-2xs space-y-2 col-span-1 md:col-span-2">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-amber-900 flex items-center gap-1.5">
+                  <i class="fa-solid fa-scale-balanced text-amber-600"></i>【負責任的決定】關懷社群、倫理反思與自主抉擇
+                </span>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" class="sel-insert-btn px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg border border-amber-200 transition text-left" data-target-field="content" data-text="連結社區環境關懷，引導自主評估創作選材對環境與群體的影響">
+                  ＋ [內容] 連結社區關懷與自主評估影響
+                </button>
+                <button type="button" class="sel-insert-btn px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg border border-amber-200 transition text-left" data-target-field="outcome" data-text="具備自主抉擇與反思能力，展現對公共社群與環境之永續責任感">
+                  ＋ [效益] 具備倫理反思與社群責任感
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 18週表格清單 -->
+        <div class="overflow-x-auto rounded-xl border border-slate-300 shadow-sm">
+          <table class="w-full text-left border-collapse">
+            <thead class="bg-slate-100 text-slate-700 text-sm sm:text-base border-b border-slate-300">
+              <tr>
+                <th class="p-3 sm:p-4 w-20 text-center font-bold border-r border-slate-300">週數</th>
+                <th class="p-3 sm:p-4 w-1/4 font-bold border-r border-slate-300">主題</th>
+                <th class="p-3 sm:p-4 font-bold border-r border-slate-300">內容說明</th>
+                <th class="p-3 sm:p-4 w-1/4 font-bold">預期效益</th>
+              </tr>
+            </thead>
+            <tbody id="syllabus-tbody" class="divide-y divide-slate-200 text-slate-800">
+              <!-- 動態生成或預設渲染18週 -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 導覽按鈕 -->
+        <div class="flex justify-between pt-6 border-t border-slate-200">
+          <button type="button" class="prev-step-btn px-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-lg rounded-xl transition flex items-center gap-2">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>上一步</span>
+          </button>
+          <button type="button" class="next-step-btn px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg rounded-xl shadow-md flex items-center gap-2">
+            <span>下一步：總覽與匯出</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= STEP 5: 總覽確認與 PDF 匯出 ================= -->
+      <section id="step-panel-5" class="step-panel hidden space-y-6">
+        
+        <!-- 操作列與提示 -->
+        <div class="bg-white rounded-2xl p-6 shadow-md border border-slate-200 flex flex-wrap items-center justify-between gap-4 no-print">
+          <div>
+            <span class="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 text-sm font-bold rounded-full mb-1">步驟 5 / 5 完成</span>
+            <h2 class="text-2xl font-black text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-file-circle-check text-emerald-600"></i>
+              投課表預覽與正式匯出
+            </h2>
+            <p class="text-slate-600 text-sm">請核對下方排版完整的正式表格。確認無誤後，即可點選按鈕一鍵匯出為 PDF 檔案。</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button type="button" class="prev-step-btn px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition flex items-center gap-2 border border-slate-300">
+              <i class="fa-solid fa-arrow-left"></i>
+              <span>返回修改</span>
+            </button>
+            <button type="button" id="export-pdf-final-btn" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-lg rounded-xl shadow-lg transition flex items-center gap-2 transform active:scale-95">
+              <i class="fa-solid fa-file-pdf text-xl"></i>
+              <span>立即匯出 PDF 檔案</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 正式投課表格（此區域將精準渲染並輸出為 PDF） -->
+        <div id="pdf-container" class="bg-white p-8 sm:p-12 rounded-2xl shadow-xl border border-slate-300 max-w-5xl mx-auto pdf-sheet text-slate-900">
+          
+          <!-- 表頭 -->
+          <div class="text-center pb-6 border-b-2 border-slate-800 mb-6">
+            <h2 class="text-2xl sm:text-3xl font-extrabold tracking-wider text-slate-900 mb-2">竹北社區大學 講師投課資料</h2>
+            <p class="text-slate-600 text-sm sm:text-base font-medium">新竹縣社區大學課程撰寫格式標準規範</p>
+          </div>
+
+          <!-- 課程基本資料表格 -->
+          <div class="mb-8">
+            <div class="bg-slate-800 text-white px-4 py-2 font-bold text-lg rounded-t-lg flex items-center gap-2">
+              <i class="fa-solid fa-clipboard-list"></i>
+              <span>課程基本資料</span>
+            </div>
+            <table class="w-full border-collapse border border-slate-400 text-base">
+              <tbody>
+                <tr class="border-b border-slate-300">
+                  <td class="w-36 bg-slate-100 p-3 font-bold text-slate-800 border-r border-slate-300">課程名稱</td>
+                  <td colspan="3" class="p-3 font-bold text-lg text-emerald-900" id="pv_course_name">尚未填寫</td>
+                </tr>
+                <tr class="border-b border-slate-300">
+                  <td class="bg-slate-100 p-3 font-bold text-slate-800 border-r border-slate-300">課程週次</td>
+                  <td colspan="3" class="p-3 text-slate-800" id="pv_week_type">12週 / 每次3小時 / 36小時 (2學分)</td>
+                </tr>
+                <tr class="border-b border-slate-300">
+                  <td class="bg-slate-100 p-3 font-bold text-slate-800 border-r border-slate-300">上課地點</td>
+                  <td class="p-3 text-slate-800 border-r border-slate-300" id="pv_location">博愛國中</td>
+                  <td class="w-28 bg-slate-100 p-3 font-bold text-slate-800 border-r border-slate-300">上課時間</td>
+                  <td class="p-3 text-slate-800" id="pv_course_time">尚未填寫</td>
+                </tr>
+                <tr class="border-b border-slate-300">
+                  <td class="bg-slate-100 p-3 font-bold text-slate-800 border-r border-slate-300">學分費</td>
+                  <td colspan="3" class="p-3 text-slate-800 font-semibold" id="pv_tuition_fee">尚未填寫</td>
+                </tr>
+                <tr class="border-b border-slate-300">
+                  <td class="bg-slate-100 p-3 font-bold text-slate-800 border-r border-slate-300">課程目標</td>
+                  <td colspan="3" class="p-3 text-slate-800 leading-relaxed whitespace-pre-wrap" id="pv_course_goal">尚未填寫</td>
+                </tr>
+                <tr class="border-b border-slate-300">
+                  <td class="bg-slate-100 p-3 font-bold text-slate-800 border-r border-slate-300">課程理念</td>
+                  <td colspan="3" class="p-3 text-slate-800 leading-relaxed whitespace-pre-wrap" id="pv_course_idea">尚未填寫</td>
+                </tr>
+                <tr class="border-b border-slate-300">
+                  <td class="bg-slate-100 p-3 font-bold text-slate-800 border-r border-slate-300">條件限制對象</td>
+                  <td colspan="3" class="p-3 text-slate-800 leading-relaxed whitespace-pre-wrap" id="pv_course_audience">尚未填寫</td>
+                </tr>
+                <tr class="border-b border-slate-300">
+                  <td class="bg-slate-100 p-3 font-bold text-slate-800 border-r border-slate-300">材料說明</td>
+                  <td colspan="3" class="p-3 text-slate-800 leading-relaxed whitespace-pre-wrap" id="pv_material_desc">尚未填寫</td>
+                </tr>
+                <tr class="border-b border-slate-300">
+                  <td class="bg-slate-100 p-3 font-bold text-slate-800 border-r border-slate-300">授課方式</td>
+                  <td colspan="3" class="p-3 text-slate-800 leading-relaxed" id="pv_teaching_methods">尚未填寫</td>
+                </tr>
+                <tr class="border-b border-slate-300">
+                  <td class="bg-slate-100 p-3 font-bold text-slate-800 border-r border-slate-300">評量方式</td>
+                  <td colspan="3" class="p-3 text-slate-800 leading-relaxed" id="pv_evaluation">尚未填寫</td>
+                </tr>
+                <tr class="border-b border-slate-300">
+                  <td class="bg-slate-100 p-3 font-bold text-slate-800 border-r border-slate-300">學員自備事項</td>
+                  <td colspan="3" class="p-3 text-slate-800" id="pv_student_prep">自由</td>
+                </tr>
+                <tr class="border-b border-slate-300">
+                  <td class="bg-slate-100 p-3 font-bold text-slate-800 border-r border-slate-300">課程參考資料書目</td>
+                  <td colspan="3" class="p-3 text-slate-800 whitespace-pre-wrap" id="pv_reference_books">尚未填寫</td>
+                </tr>
+                <tr>
+                  <td class="bg-slate-100 p-3 font-bold text-slate-800 border-r border-slate-300">上課使用器材</td>
+                  <td colspan="3" class="p-3 text-slate-800" id="pv_equipment">無特別指定</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- 課程大綱表格 -->
+          <div class="mt-8 page-break">
+            <div class="bg-slate-800 text-white px-4 py-2 font-bold text-lg rounded-t-lg flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-list-ol"></i>
+                <span>三、課程大綱</span>
+              </div>
+              <span class="text-xs font-normal text-slate-300">(第九週為公民素養週)</span>
+            </div>
+            <table class="w-full border-collapse border border-slate-400 text-base">
+              <thead>
+                <tr class="bg-slate-100 text-slate-800 border-b border-slate-400 font-bold">
+                  <th class="w-20 p-2.5 text-center border-r border-slate-300">週數</th>
+                  <th class="w-1/4 p-2.5 text-left border-r border-slate-300">主題</th>
+                  <th class="p-2.5 text-left border-r border-slate-300">內容</th>
+                  <th class="w-1/4 p-2.5 text-left">預期效益</th>
+                </tr>
+              </thead>
+              <tbody id="pv_syllabus_tbody" class="divide-y divide-slate-300">
+                <!-- 動態注入預覽大綱內容 -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="mt-8 pt-4 border-t border-slate-200 text-xs text-slate-500 flex justify-between items-center">
+            <span>竹北社區大學 課程投課申請表單</span>
+            <span>列印日期：<span id="pv-current-date"></span></span>
+          </div>
+        </div>
+
+      </section>
+
+    </form>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-6 text-center text-slate-500 text-sm no-print mt-10">
+    <p>© 竹北社區大學 講師投課系統 ・ 支援離線瀏覽與本機儲存</p>
+  </footer>
+
+  <!-- Script Logic -->
+  <script>
+    // 預設18週標題模板
+    const weekLabels = [
+      "第一週", "第二週", "第三週", "第四週", "第五週", "第六週",
+      "第七週", "第八週", "第九週", "第十週", "第十一週", "第十二週",
+      "第十三週", "第十四週", "第十五週", "第十六週", "第十七週", "第十八週"
+    ];
+
+    let currentStep = 1;
+    const totalSteps = 5;
+
+    // 初始化渲染 18 週編輯輸入框
+    function renderSyllabusInputs() {
+      const tbody = document.getElementById('syllabus-tbody');
+      tbody.innerHTML = '';
+
+      weekLabels.forEach((label, idx) => {
+        const weekNum = idx + 1;
+        const tr = document.createElement('tr');
+        tr.className = (weekNum === 9) ? 'bg-amber-50/80 font-medium' : (weekNum % 2 === 0 ? 'bg-slate-50/50' : 'bg-white');
+
+        if (weekNum === 9) {
+          // 公民素養週固定
+          tr.innerHTML = `
+            <td class="p-3 text-center font-bold text-amber-900 border-r border-slate-300">
+              <span class="inline-block px-2 py-0.5 bg-amber-200 text-amber-900 rounded text-sm">${label}</span>
+            </td>
+            <td class="p-3 border-r border-slate-300">
+              <input type="text" id="week_topic_${weekNum}" value="公民素養週" readonly class="w-full bg-transparent font-bold text-amber-900 border-none outline-none">
+            </td>
+            <td class="p-3 border-r border-slate-300">
+              <input type="text" id="week_content_${weekNum}" value="社大舉辦公民素養講座" readonly class="w-full bg-transparent font-bold text-amber-900 border-none outline-none">
+            </td>
+            <td class="p-3">
+              <input type="text" id="week_outcome_${weekNum}" value="拓展公共議題視野與公民思辨能力" readonly class="w-full bg-transparent font-bold text-amber-900 border-none outline-none">
+            </td>
+          `;
+        } else {
+          tr.innerHTML = `
+            <td class="p-3 text-center font-semibold text-slate-700 border-r border-slate-300">
+              ${label}
+            </td>
+            <td class="p-2 border-r border-slate-300">
+              <input type="text" id="week_topic_${weekNum}" placeholder="主題 (例: 單元主題概論)" 
+                class="syllabus-topic w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-emerald-500 focus:bg-white text-base transition outline-none">
+            </td>
+            <td class="p-2 border-r border-slate-300">
+              <input type="text" id="week_content_${weekNum}" placeholder="講授與實作重點說明..." 
+                class="syllabus-content w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-emerald-500 focus:bg-white text-base transition outline-none">
+            </td>
+            <td class="p-2">
+              <input type="text" id="week_outcome_${weekNum}" placeholder="預期產出成果、效益..." 
+                class="syllabus-outcome w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-emerald-500 focus:bg-white text-base transition outline-none">
+            </td>
+          `;
+        }
+        tbody.appendChild(tr);
+      });
+    }
+
+    // 步驟切換
+    function showStep(step) {
+      if (step < 1 || step > totalSteps) return;
+      currentStep = step;
+
+      // 切換面板
+      document.querySelectorAll('.step-panel').forEach((panel, i) => {
+        if (i + 1 === step) {
+          panel.classList.remove('hidden');
+        } else {
+          panel.classList.add('hidden');
+        }
+      });
+
+      // 更新 Step 標記
+      document.querySelectorAll('.step-nav-btn').forEach((btn, i) => {
+        const circle = btn.querySelector('.step-circle');
+        const label = btn.querySelector('.step-label');
+        const stepNum = i + 1;
+
+        if (stepNum < step) {
+          // 已完成
+          circle.className = 'step-circle w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-lg sm:text-xl transition-all duration-200 shadow bg-emerald-600 text-white';
+          circle.innerHTML = '<i class="fa-solid fa-check"></i>';
+          label.className = 'step-label mt-2 text-xs sm:text-sm font-semibold text-emerald-800';
+        } else if (stepNum === step) {
+          // 當前
+          circle.className = 'step-circle w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-lg sm:text-xl transition-all duration-200 shadow-md bg-emerald-600 text-white ring-4 ring-emerald-100';
+          circle.textContent = stepNum;
+          label.className = 'step-label mt-2 text-xs sm:text-sm font-bold text-emerald-800';
+        } else {
+          // 未來
+          circle.className = 'step-circle w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-lg sm:text-xl transition-all duration-200 shadow-md bg-white border-2 border-slate-300 text-slate-500';
+          circle.textContent = stepNum;
+          label.className = 'step-label mt-2 text-xs sm:text-sm font-medium text-slate-500';
+        }
+      });
+
+      // 進度條寬度
+      const percent = ((step - 1) / (totalSteps - 1)) * 100;
+      document.getElementById('step-progress-bar').style.width = `${percent}%`;
+
+      // 若切換到第5步，即刻刷新總覽預覽內容
+      if (step === 5) {
+        syncPreview();
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 計算評量總百分比
+    function updateEvaluationTotal() {
+      let sum = 0;
+      const parts = [];
+      document.querySelectorAll('.eval-input').forEach(input => {
+        const val = parseInt(input.value) || 0;
+        if (val > 0) {
+          sum += val;
+          parts.push(`${input.dataset.item} ${val}%`);
+        }
+      });
+
+      const totalDisplay = document.getElementById('eval-total-display');
+      const statusMsg = document.getElementById('eval-status-msg');
+      const evalText = document.getElementById('evaluation_text');
+
+      totalDisplay.textContent = `${sum}%`;
+      evalText.value = parts.join('、');
+
+      if (sum === 100) {
+        totalDisplay.className = 'text-lg font-black text-emerald-600';
+        statusMsg.className = 'text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-1 rounded';
+        statusMsg.textContent = '比例正確合規 (100%)';
+      } else {
+        totalDisplay.className = 'text-lg font-black text-red-600';
+        statusMsg.className = 'text-xs font-semibold text-red-700 bg-red-100 px-2 py-1 rounded';
+        statusMsg.textContent = `目前 ${sum}%，尚差 ${100 - sum}% (需加總為100%)`;
+      }
+    }
+
+    // 將填寫資料同步進預覽表 (Step 5)
+    function syncPreview() {
+      // 課程名稱
+      const name = document.getElementById('course_name').value.trim();
+      document.getElementById('pv_course_name').textContent = name || '（尚未填寫）';
+
+      // 課程週次
+      const weekRadio = document.querySelector('input[name="week_type"]:checked');
+      document.getElementById('pv_week_type').textContent = weekRadio ? weekRadio.value : '';
+
+      // 上課地點
+      const locRadio = document.querySelector('input[name="location"]:checked');
+      let locText = locRadio ? locRadio.value : '';
+      if (locText === '其他') {
+        const locOther = document.getElementById('location_other').value.trim();
+        locText = locOther ? `其他：${locOther}` : '其他場地';
+      }
+      document.getElementById('pv_location').textContent = locText;
+
+      // 時間與費用
+      document.getElementById('pv_course_time').textContent = document.getElementById('course_time').value.trim() || '（尚未填寫）';
+      document.getElementById('pv_tuition_fee').textContent = document.getElementById('tuition_fee').value.trim() || '（尚未填寫）';
+
+      // 目標、理念、對象
+      document.getElementById('pv_course_goal').textContent = document.getElementById('course_goal').value.trim() || '（尚未填寫）';
+      document.getElementById('pv_course_idea').textContent = document.getElementById('course_idea').value.trim() || '（尚未填寫）';
+      document.getElementById('pv_course_audience').textContent = document.getElementById('course_audience').value.trim() || '（尚未填寫）';
+
+      // 材料、教法、評量、自備、參考書
+      document.getElementById('pv_material_desc').textContent = document.getElementById('material_desc').value.trim() || '無';
+      document.getElementById('pv_teaching_methods').textContent = document.getElementById('teaching_methods').value.trim() || '（尚未填寫）';
+      
+      const evalStr = document.getElementById('evaluation_text').value.trim();
+      document.getElementById('pv_evaluation').textContent = evalStr || '（尚未設定評量）';
+
+      document.getElementById('pv_student_prep').textContent = document.getElementById('student_prep').value.trim() || '自由';
+      document.getElementById('pv_reference_books').textContent = document.getElementById('reference_books').value.trim() || '（尚未填寫）';
+
+      // 器材
+      const eqChecks = Array.from(document.querySelectorAll('input[name="equipment"]:checked')).map(c => c.value);
+      const eqOther = document.getElementById('equipment_other').value.trim();
+      if (eqOther) eqChecks.push(`其他：${eqOther}`);
+      document.getElementById('pv_equipment').textContent = eqChecks.length > 0 ? eqChecks.join('、') : '無特別需求';
+
+      // 18週大綱預覽同步
+      const pvTbody = document.getElementById('pv_syllabus_tbody');
+      pvTbody.innerHTML = '';
+      weekLabels.forEach((label, idx) => {
+        const weekNum = idx + 1;
+        const topic = document.getElementById(`week_topic_${weekNum}`) ? document.getElementById(`week_topic_${weekNum}`).value.trim() : '';
+        const content = document.getElementById(`week_content_${weekNum}`) ? document.getElementById(`week_content_${weekNum}`).value.trim() : '';
+        const outcome = document.getElementById(`week_outcome_${weekNum}`) ? document.getElementById(`week_outcome_${weekNum}`).value.trim() : '';
+
+        // 如果後續週次皆為空且不是第九週，仍保持列出或顯示留空
+        const tr = document.createElement('tr');
+        if (weekNum === 9) {
+          tr.className = 'bg-amber-50 font-medium';
+          tr.innerHTML = `
+            <td class="p-2.5 text-center font-bold text-amber-900 border-r border-slate-300">${label}</td>
+            <td class="p-2.5 text-amber-900 font-bold border-r border-slate-300">公民素養週</td>
+            <td class="p-2.5 text-amber-900 border-r border-slate-300">社大舉辦公民素養講座</td>
+            <td class="p-2.5 text-amber-900">拓展公共議題視野與公民思辨能力</td>
+          `;
+        } else {
+          tr.className = (weekNum % 2 === 0) ? 'bg-slate-50/70' : 'bg-white';
+          tr.innerHTML = `
+            <td class="p-2.5 text-center font-semibold text-slate-700 border-r border-slate-300">${label}</td>
+            <td class="p-2.5 text-slate-800 border-r border-slate-300">${topic || '<span class="text-slate-400">（無）</span>'}</td>
+            <td class="p-2.5 text-slate-800 border-r border-slate-300">${content || '<span class="text-slate-400">（無）</span>'}</td>
+            <td class="p-2.5 text-slate-800">${outcome || '<span class="text-slate-400">（無）</span>'}</td>
+          `;
+        }
+        pvTbody.appendChild(tr);
+      });
+
+      // 列印時間
+      const now = new Date();
+      document.getElementById('pv-current-date').textContent = `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')}`;
+    }
+
+    // 匯出 PDF 執行函數 (html2pdf)
+    function exportToPdf() {
+      // 先確保預覽資料最新
+      syncPreview();
+
+      const element = document.getElementById('pdf-container');
+      const courseName = document.getElementById('course_name').value.trim() || '新開課程';
+      const filename = `竹北社區大學投課表_${courseName}.pdf`;
+
+      // 提示使用者
+      const opt = {
+        margin:       [10, 10, 10, 10], // top, left, bottom, right in mm
+        filename:     filename,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      const btn = document.getElementById('export-pdf-final-btn');
+      const topBtn = document.getElementById('export-pdf-top-btn');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>正在產生高品質 PDF...';
+      btn.disabled = true;
+
+      html2pdf().set(opt).from(element).save().then(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }).catch(err => {
+        console.error('PDF Export error:', err);
+        alert('匯出 PDF 遇到狀況，即將開啟瀏覽器自帶列印功能為您另存 PDF！');
+        window.print();
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      });
+    }
+
+    // 綁定字數計數器
+    function setupCharCounters() {
+      const binds = [
+        { id: 'course_name', counter: 'name-counter', max: 30, unit: '字' },
+        { id: 'course_goal', counter: 'goal-counter', max: 120, unit: '/ 120 字' },
+        { id: 'course_idea', counter: 'idea-counter', max: 120, unit: '/ 120 字' },
+        { id: 'course_audience', counter: 'audience-counter', max: 120, unit: '/ 120 字' },
+        { id: 'teaching_methods', counter: 'methods-counter', max: 100, unit: '/ 100 字' }
+      ];
+
+      binds.forEach(item => {
+        const input = document.getElementById(item.id);
+        const counter = document.getElementById(item.counter);
+        if (input && counter) {
+          input.addEventListener('input', () => {
+            const len = input.value.length;
+            if (item.max === 30) {
+              counter.textContent = `${len} 字`;
+            } else {
+              counter.textContent = `${len} ${item.unit}`;
+            }
+            if (len >= item.max) {
+              counter.classList.add('text-red-500');
+            } else {
+              counter.classList.remove('text-red-500');
+            }
+          });
+        }
+      });
+    }
+
+    // 填入範例資料便於體驗
+    function fillDemoData() {
+      document.getElementById('course_name').value = '手繪植物水彩與自然美學';
+      document.getElementById('course_name').dispatchEvent(new Event('input'));
+
+      document.querySelector('input[name="week_type"][value="18週 / 每次2小時 / 36小時 (2學分)"]').checked = true;
+      document.querySelector('input[name="location"][value="博愛國小美術教室"]').checked = true;
+
+      document.getElementById('course_time').value = '每週三 19:00 - 21:00';
+      document.getElementById('tuition_fee').value = '2,000 元 (2學分)';
+
+      document.getElementById('course_goal').value = '引導學員掌握透明水彩調色技法，認識在地原生植物形態，培養觀察自然景觀美感與生活繪畫創作之核心能力。';
+      document.getElementById('course_goal').dispatchEvent(new Event('input'));
+
+      document.getElementById('course_idea').value = '推動生活美學與環境關懷，透過靜心觀察與水彩揮灑，讓藝術自然融入日常，增進社區人文交流並共創綠色永續生活圈。';
+      document.getElementById('course_idea').dispatchEvent(new Event('input'));
+
+      document.getElementById('course_audience').value = '凡對植物手繪與水彩藝術有興趣之一般大眾皆可參加，無繪畫基礎初學者亦竭誠歡迎。';
+      document.getElementById('course_audience').dispatchEvent(new Event('input'));
+
+      document.getElementById('teaching_methods').value = '講師示範與實際操作、個別指導與反覆練習、主題探討或簡報介紹、實物觀賞及樣品教學。';
+      document.getElementById('teaching_methods').dispatchEvent(new Event('input'));
+
+      document.getElementById('material_desc').value = '課堂講義與特殊水彩畫紙費200元；水彩顏料與水彩筆可自備或由班級團購(約350元)。';
+      document.getElementById('student_prep').value = '鉛筆、橡皮擦、吸水抹布，其餘畫具可於第一堂課統一說明後再行購置。';
+      document.getElementById('reference_books').value = '林麗琪(2018)。我的自然調色盤：四季花草野趣水彩速寫。聯經出版。';
+
+      // 評量
+      document.querySelectorAll('.eval-input')[0].value = 40; // 出席率
+      document.querySelectorAll('.eval-input')[1].value = 30; // 實作
+      document.querySelectorAll('.eval-input')[2].value = 30; // 學習態度
+      updateEvaluationTotal();
+
+      // 器材
+      document.querySelectorAll('input[name="equipment"]').forEach(c => {
+        if (['投影機', '電腦', '延長線'].includes(c.value)) c.checked = true;
+      });
+
+      // 示範大綱
+      fillDemoSyllabus();
+    }
+
+    // 示範大綱填充
+    function fillDemoSyllabus() {
+      const demoTopics = [
+        { t: "相見歡與工具介紹", c: "認識水彩特性、紙張肌理挑選與水分調控；課前靜心感知身心狀態", o: "建立工具認知，培養自我內在覺察與專注力" },
+        { t: "色彩基礎與混色練習", c: "十二色相環調配、冷暖對比及漸層水韻；練習耐挫與調適創作焦慮", o: "能調製乾淨混色，提升面對瓶頸之自我管理韌性" },
+        { t: "植物單葉筆觸與造形", c: "觀察校園落葉脈絡與乾濕疊色；同儕互相欣賞不同筆觸呈現", o: "完成葉形筆觸習作3張，增進欣賞多元差異之社會覺察" },
+        { t: "四季果實結構繪製", c: "立體光影表現、高光留白與水分滲透；沉浸於創作心流", o: "產出水果小品畫作，深化專注穩定與自我成就感" },
+        { t: "多肉植物水潤質感", c: "厚實葉片色彩漸變與細緻針尖描繪；小組互助討論混色技巧", o: "掌握晶瑩質感表現，促進課堂同儕合作與溫暖交流" },
+        { t: "野花速寫與構圖引導", c: "花瓣重疊空間層次處理；練習同理傾聽他人創作想法", o: "完成野花線畫淡彩，深化同理心與人際互動技巧" },
+        { t: "花卉盛開與精細調子", c: "花蕊與花瓣透光感表現；面對繁複細節培養耐心與調節節奏", o: "具備多層渲染技巧，強化耐心與自我情緒管理" },
+        { t: "期中作品觀摩與分享", c: "學員習作個別點評與同儕互賞；練習給予溫暖具體的回饋建議", o: "釐清盲點，建立包容接納氛圍與人際支持網絡" },
+        { t: "公民素養週", c: "社大舉辦公民素養講座", o: "拓展公共議題視野，強化負責任公民決策素養" }, // 第9週
+        { t: "枝葉穿插與立體空間", c: "樹枝生長紋理表現、虛實層次營造；覺察環境中生命的韌性", o: "掌握前後縱深穿插空間感，體會自然連結與身心放鬆" },
+        { t: "草本植物小品集創作", c: "結合字體排版與手繪邊框；為重要親友手作祝福卡片", o: "產出明信片2套，透過手作傳遞溫暖並深化人際連結" },
+        { t: "校園實地寫生觀察", c: "校園自然環境速寫取材；連結在地植物生態與環境友善觀察", o: "提升自然觀察力，具備對社群土地與生態之永續關懷" },
+        { t: "複合媒材水彩應用", c: "搭配代針筆與色鉛筆細部刻劃；鼓勵突破框架嘗試新媒材", o: "熟悉多元媒材互補特性，增進主動探索與自主決定能力" },
+        { t: "主題創作發想與草稿", c: "個人專題討論與構圖；引導回顧自我生命歷程融入創作主題", o: "確立期末代表作草圖，提升自我價值感與目標實踐力" },
+        { t: "大幅作品創作實作(一)", c: "背景濕染大面積鋪色與氛圍定位；相互加油打氣彼此支持", o: "完成大幅作品底色鋪陳，在支持氛圍中提升持續專注力" },
+        { t: "大幅作品創作實作(二)", c: "細部刻畫修飾與整體平衡；自主審視畫面並負責任取捨留白", o: "完成具完整度之期末大作，展現成熟之自我調節與反思" },
+        { t: "成果裱框與展覽佈置", c: "水彩畫作保存裝框技巧；團隊分工協作共同布置展覽空間", o: "學會畫作裝框保護，落實團隊合作溝通與問題解決能力" },
+        { t: "期末成果聯展與茶會", c: "學員創作分享展演與溫馨心得交流；共同向社區分享美學成果", o: "落實學習成果展現，增進社區連結與對群體的貢獻感" }
+      ];
+
+      demoTopics.forEach((item, idx) => {
+        const weekNum = idx + 1;
+        if (weekNum !== 9) {
+          const tInput = document.getElementById(`week_topic_${weekNum}`);
+          const cInput = document.getElementById(`week_content_${weekNum}`);
+          const oInput = document.getElementById(`week_outcome_${weekNum}`);
+          if (tInput) tInput.value = item.t;
+          if (cInput) cInput.value = item.c;
+          if (oInput) oInput.value = item.o;
+        }
+      });
+    }
+
+    // 頁面初始化事件
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. 渲染大綱
+      renderSyllabusInputs();
+
+      // 2. 設置計數器
+      setupCharCounters();
+
+      // 3. 評量計算
+      document.querySelectorAll('.eval-input').forEach(input => {
+        input.addEventListener('input', updateEvaluationTotal);
+      });
+      updateEvaluationTotal();
+
+      // 4. 步驟按鈕切換
+      document.querySelectorAll('.step-nav-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const step = parseInt(btn.dataset.step);
+          showStep(step);
+        });
+      });
+
+      document.querySelectorAll('.next-step-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          showStep(currentStep + 1);
+        });
+      });
+
+      document.querySelectorAll('.prev-step-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          showStep(currentStep - 1);
+        });
+      });
+
+      // 5. 授課方式標籤點擊帶入
+      document.querySelectorAll('.tag-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          const val = pill.dataset.val;
+          const textarea = document.getElementById('teaching_methods');
+          const cur = textarea.value.trim();
+          if (!cur) {
+            textarea.value = val;
+          } else if (!cur.includes(val)) {
+            textarea.value = cur + '、' + val;
+          }
+          textarea.dispatchEvent(new Event('input'));
+        });
+      });
+
+      // 6. 範例資料按鈕
+      document.getElementById('quick-demo-btn').addEventListener('click', () => {
+        fillDemoData();
+        alert('已為您填入示範課程資料！您可以點選上方步驟預覽或直接前往第5步匯出 PDF。');
+      });
+
+      document.getElementById('fill-syllabus-demo').addEventListener('click', () => {
+        fillDemoSyllabus();
+      });
+
+      // 6.1 SEL 融入小幫手：點擊帶入選定週次
+      document.querySelectorAll('.sel-insert-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const targetWeek = document.getElementById('sel-target-week').value;
+          const targetField = btn.dataset.targetField; // 'content' 或 'outcome'
+          const insertText = btn.dataset.text;
+          const inputId = (targetField === 'content') ? `week_content_${targetWeek}` : `week_outcome_${targetWeek}`;
+          const inputElem = document.getElementById(inputId);
+
+          if (!inputElem) return;
+
+          const currentVal = inputElem.value.trim();
+          if (!currentVal) {
+            inputElem.value = insertText;
+          } else {
+            // 如果已有內容，以全形分號或頓號自然銜接
+            inputElem.value = `${currentVal}；${insertText}`;
+          }
+
+          // 視覺反饋：高亮提示該週輸入框
+          inputElem.classList.add('ring-2', 'ring-purple-500', 'bg-purple-50');
+          setTimeout(() => {
+            inputElem.classList.remove('ring-2', 'ring-purple-500', 'bg-purple-50');
+          }, 800);
+
+          // 自動捲動到該輸入框
+          inputElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+      });
+
+      // 7. PDF 匯出綁定
+      document.getElementById('export-pdf-final-btn').addEventListener('click', exportToPdf);
+      document.getElementById('export-pdf-top-btn').addEventListener('click', () => {
+        showStep(5);
+        setTimeout(exportToPdf, 400);
+      });
+
+      // 8. 鍵盤快速儲存/預覽處理
+      showStep(1);
+    });
+  </script>
+</body>
+</html>
